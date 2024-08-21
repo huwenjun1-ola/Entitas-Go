@@ -114,16 +114,16 @@ func CreateEntitasContextFile(context string, components []*Component, src []byt
 
 			if v.Ident {
 				contextData = strings.Replace(contextData, "{type}", f, -1)
-				str = "\tc" + " = (*" + n + "Component" + ")(&" + strings.ToLower(n) + ")"
+				str = "\tc" + " = (*" + n + "Component" + ")(&" + n + ")"
 			} else {
-				str = "\tc." + n + " = " + strings.ToLower(n) + "\n"
+				str = "\tc." + n + " = " + n + "\n"
 			}
 			result = append(result, str)
 
 			str2 = n + " " + f
 			argsWithType = append(argsWithType, str2)
 
-			args = append(args, strings.ToLower(n))
+			args = append(args, n)
 		}
 
 		results := strings.Join(result, "")
