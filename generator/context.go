@@ -1,8 +1,9 @@
 package generator
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -24,31 +25,23 @@ func (c *Contexts) {name}() EntityBase {
 }`
 
 func InitContext(context string) {
-	if _, err := os.Stat("./Entitas/Contexts.go"); os.IsNotExist(err) {
-		file, _ := os.Create("./Entitas/Contexts.go")
-		defer file.Close()
+	file, _ := os.Create(GetPath("Contexts.go"))
+	defer file.Close()
 
-		getter := strings.Replace(getContextTemplate, "{name}", context, -1)
-		body := strings.Replace(contextsTemplate, "//NEXT2", "CreateEntityBase("+context+"ComponentTotal),\n//NEXT2", -1)
-		body = strings.Replace(body, "{First}", context, -1)
-		contextData := header + body + getter
+	getter := strings.Replace(getContextTemplate, "{name}", context, -1)
+	body := strings.Replace(contextsTemplate, "//NEXT2", "CreateEntityBase("+context+"ComponentTotal),\n//NEXT2", -1)
+	body = strings.Replace(body, "{First}", context, -1)
+	contextData := GetHeader() + body + getter
 
-		file.WriteString(contextData)
-	} else {
-		data, _ := ioutil.ReadFile("./Entitas/Contexts.go")
+	file.WriteString(contextData)
 
-		strData := string(data)
-
-		getter := strings.Replace(getContextTemplate, "{name}", context, -1)
-		strData = strings.Replace(strData, "//NEXT2", "CreateEntityBase("+context+"ComponentTotal),\n//NEXT2", -1)
-		strData = strings.Replace(strData, "//NEXT1", context+"\n//NEXT2", -1)
-		strData += getter
-
-		os.Remove("./Entitas/Contexts.go")
-		file, _ := os.Create("./Entitas/Contexts.go")
-		defer file.Close()
-
-		file.WriteString(strData)
-	}
-
+}
+func GetHeader() string {
+	return fmt.Sprintf(header, PackageName)
+}
+func GetDir() string {
+	return "./entitas"
+}
+func GetPath(fileName string) string {
+	return path.Join(GetDir(), "gen_"+fileName)
 }

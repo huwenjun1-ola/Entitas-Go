@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var PackageName = "ecs"
+
 const header string = `//////////////////////////////////////////////////////////////////////////
 //
 // Copyright (c) 2021 Vladislav Fedotov (Falldot)
@@ -21,7 +23,7 @@ const header string = `/////////////////////////////////////////////////////////
 // Entitas-Go: github.com/Falldot/Entitas-Go
 //
 //////////////////////////////////////////////////////////////////////////
-package ecs
+package %s
 `
 
 var files []string = []string{
@@ -40,14 +42,17 @@ var files []string = []string{
 }
 
 func CreateEntitasLibFile() {
-	os.Mkdir("./Entitas", 0777)
-
-	file, _ := os.Create("./Entitas/Entitas-gen.go")
+	if _, err := os.Stat(GetDir()); err != nil {
+		if os.IsNotExist(err) {
+			os.Mkdir(GetDir(), os.ModePerm)
+		}
+	}
+	file, _ := os.Create(GetPath("Entitas.go"))
 	defer file.Close()
 
 	var EntitasFile []byte
 
-	sliceByte := []byte(header)
+	sliceByte := []byte(GetHeader())
 	EntitasFile = append(EntitasFile, sliceByte...)
 
 	for _, v := range files {
@@ -67,18 +72,18 @@ func CreateEntitasLibFile() {
 	file.WriteString(string(EntitasFile))
 }
 
-func CreateEntitasContextFile(context string, components []*Component, src []byte) {
-
-	contextFile, _ := os.Create("./Entitas/" + context)
+func CreateEntitasContextFile(context string, components []*Component, src []byte) string {
+	contextFile, _ := os.Create(GetPath(context))
 	defer contextFile.Close()
 
 	newSRC := string(src)
 	newSRC = strings.Replace(newSRC, "package", "//", -1)
 	for _, v := range components {
-		newSRC = strings.Replace(newSRC, v.Name, v.Name+"Component", -1)
+		newSRC = strings.Replace(newSRC, fmt.Sprintf(" %s ", v.Name), fmt.Sprintf(" %s ", v.Name+"Component"), -1)
+		newSRC = strings.Replace(newSRC, fmt.Sprintf("*%s ", v.Name), fmt.Sprintf("*%s ", v.Name+"Component"), -1)
 	}
-
-	contextData := header + componentConstansTemplate + newSRC
+	constsText := GetHeader() + componentConstansTemplate
+	contextData := GetHeader() + newSRC
 
 	for i, v := range components {
 		if v.Ident {
@@ -93,14 +98,14 @@ func CreateEntitasContextFile(context string, components []*Component, src []byt
 		contextData = strings.Replace(contextData, "{name}", v.Name, -1)
 
 		// {const}
-		contextData = strings.Replace(contextData, "{context}", context[:len(context)-3], -1)
-		contextData = strings.Replace(contextData, "{componentCount}", fmt.Sprint(len(components)), -1)
+		constsText = strings.Replace(constsText, "{context}", context[:len(context)-3], -1)
+		constsText = strings.Replace(constsText, "{componentCount}", fmt.Sprint(len(components)), -1)
 		contextData = strings.Replace(contextData, "//go:generate go run github.com/Falldot/Entitas-Go", "", -1)
 		if i == 0 {
-			contextData = strings.Replace(contextData, "{const}", v.Name, -1)
+			constsText = strings.Replace(constsText, "{const}", v.Name, -1)
 		} else {
 			next := "\n" + v.Name + " //next"
-			contextData = strings.Replace(contextData, " //next", next, -1)
+			constsText = strings.Replace(constsText, " //next", next, -1)
 		}
 
 		var result, argsWithType, args []string
@@ -109,14 +114,14 @@ func CreateEntitasContextFile(context string, components []*Component, src []byt
 
 			if v.Ident {
 				contextData = strings.Replace(contextData, "{type}", f, -1)
-				str = "c" + " = (*" + n + "Component" + ")(&" + strings.ToLower(n) + ")"
+				str = "\tc" + " = (*" + n + "Component" + ")(&" + strings.ToLower(n) + ")"
 			} else {
-				str = "c." + n + " = " + strings.ToLower(n) + "\n"
+				str = "\tc." + n + " = " + strings.ToLower(n) + "\n"
 			}
 			result = append(result, str)
 
 			str2 = n + " " + f
-			argsWithType = append(argsWithType, strings.ToLower(str2))
+			argsWithType = append(argsWithType, str2)
 
 			args = append(args, strings.ToLower(n))
 		}
@@ -132,4 +137,5 @@ func CreateEntitasContextFile(context string, components []*Component, src []byt
 	}
 
 	contextFile.WriteString(contextData)
+	return constsText
 }
