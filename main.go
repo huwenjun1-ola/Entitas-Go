@@ -12,8 +12,8 @@ import (
 
 func main() {
 	fset := token.NewFileSet()
-	//inFileName := os.Getenv("GOFILE")
-	inFileName := "components.go"
+	inFileName := os.Getenv("GOFILE")
+	//inFileName := "components.go"
 	//inFileName := "entitas/gen_Entitas.go"
 	src, err := ioutil.ReadFile(inFileName)
 	if err != nil {
